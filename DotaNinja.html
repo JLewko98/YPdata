@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>ColoJoe's Last 50 Matches</title>
+  <meta charset="UTF-8" />
+  <title>DotaNinJas Last 50 Matches</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -80,7 +80,7 @@
   </style>
 </head>
 <body>
-  <h1>ColoJoe's Last 50 Dota 2 Matches</h1>
+  <h1>DotaNinJas Last 50 Dota 2 Matches</h1>
   <div id="winSummary" class="summary">Loading win percentage...</div>
   <button onclick="downloadCSV()">Export to CSV</button>
 
@@ -102,7 +102,7 @@
 
   <script>
     const API_KEY = "8d34e6e0-182c-4946-a206-08a59c6f1088";
-    const ACCOUNT_ID = 111273017;
+    const ACCOUNT_ID = 366924678; // DotaNinJas Steam32 ID
     const MATCHES_URL = `https://api.opendota.com/api/players/${ACCOUNT_ID}/matches?limit=50&api_key=${API_KEY}`;
     const HEROES_URL = `https://api.opendota.com/api/heroes`;
     const HERO_IMG_BASE = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/";
@@ -120,8 +120,11 @@
           fetch(HEROES_URL)
         ]);
 
-        const matches = await matchesResponse.json();
+        let matches = await matchesResponse.json();
         const heroes = await heroesResponse.json();
+
+        // Reverse matches so oldest comes first
+        matches = matches.reverse();
 
         const heroMap = {};
         heroes.forEach(hero => {
@@ -132,7 +135,8 @@
         });
 
         let winCount = 0;
-        matchDataRows = []; // Reset for CSV export
+        matchDataRows = [];
+        tableBody.innerHTML = "";
 
         matches.forEach(match => {
           const isRadiant = match.player_slot < 128;
@@ -157,7 +161,6 @@
           const result = didWin ? "Win" : "Loss";
           const matchLink = `https://www.opendota.com/matches/${match.match_id}`;
 
-          // Store raw data for CSV
           matchDataRows.push([
             match.match_id,
             heroData.localized_name,
@@ -193,7 +196,6 @@
       }
     }
 
-    // Sorting function
     let sortDirection = true;
     function sortTable(colIndex) {
       const rows = Array.from(tableBody.rows);
@@ -214,7 +216,6 @@
       rows.forEach(row => tableBody.appendChild(row));
     }
 
-    // CSV export
     function downloadCSV() {
       const headers = ["Match ID", "Hero", "Duration", "K/D/A", "Result", "Date"];
       const csvContent = [
@@ -226,7 +227,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "colojoe_matches.csv";
+      a.download = "dotaninjas_matches.csv";
       a.click();
       URL.revokeObjectURL(url);
     }
