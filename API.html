@@ -9,56 +9,109 @@
       padding: 20px;
     }
 
+    h1, h2 {
+      margin-bottom: 10px;
+    }
+
+    .summary {
+      font-size: 1.2em;
+      margin-bottom: 15px;
+    }
+
+    button {
+      margin-bottom: 15px;
+      padding: 8px 12px;
+      background-color: #0077cc;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #005fa3;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 20px;
+      margin-top: 10px;
     }
 
     th, td {
       padding: 10px;
       border: 1px solid #ccc;
       text-align: left;
+      vertical-align: middle;
     }
 
     th {
       background-color: #f4f4f4;
+      cursor: pointer;
     }
 
     .win {
-      background-color: #d4edda; /* light green */
+      background-color: #d4edda;
     }
 
     .loss {
-      background-color: #f8d7da; /* light red */
+      background-color: #f8d7da;
+    }
+
+    .hero-img {
+      height: 32px;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    .hero-cell {
+      display: flex;
+      align-items: center;
+    }
+
+    a {
+      color: #0077cc;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
   <h1>ColoJoe's Last 50 Dota 2 Matches</h1>
+  <div id="winSummary" class="summary">Loading win percentage...</div>
+  <button onclick="downloadCSV()">Export to CSV</button>
+
   <table id="matchTable">
     <thead>
       <tr>
-        <th>Match ID</th>
-        <th>Hero</th>
-        <th>Duration</th>
-        <th>K / D / A</th>
-        <th>Result</th>
-        <th>Date</th>
+        <th onclick="sortTable(0)">Match</th>
+        <th onclick="sortTable(1)">Hero</th>
+        <th onclick="sortTable(2)">Duration</th>
+        <th onclick="sortTable(3)">K / D / A</th>
+        <th onclick="sortTable(4)">Result</th>
+        <th onclick="sortTable(5)">Date</th>
       </tr>
     </thead>
     <tbody>
-      <!-- Match data will go here -->
+      <!-- Match data goes here -->
     </tbody>
   </table>
 
   <script>
     const API_KEY = "8d34e6e0-182c-4946-a206-08a59c6f1088";
-    const ACCOUNT_ID = 86745912; // ColoJoe's Steam32 ID
+    const ACCOUNT_ID = 86745912;
     const MATCHES_URL = `https://api.opendota.com/api/players/${ACCOUNT_ID}/matches?limit=50&api_key=${API_KEY}`;
     const HEROES_URL = `https://api.opendota.com/api/heroes`;
+    const HERO_IMG_BASE = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/";
 
-    const tableBody = document.querySelector("#matchTable tbody");
+    const table = document.getElementById("matchTable");
+    const tableBody = table.querySelector("tbody");
+    const winSummary = document.getElementById("winSummary");
+
+    let matchDataRows = [];
 
     async function fetchMatchData() {
       try {
@@ -70,21 +123,29 @@
         const matches = await matchesResponse.json();
         const heroes = await heroesResponse.json();
 
-        // Create a lookup map: hero_id → hero.localized_name
         const heroMap = {};
         heroes.forEach(hero => {
-          heroMap[hero.id] = hero.localized_name;
+          heroMap[hero.id] = {
+            name: hero.name.replace("npc_dota_hero_", ""),
+            localized_name: hero.localized_name
+          };
         });
+
+        let winCount = 0;
+        matchDataRows = []; // Reset for CSV export
 
         matches.forEach(match => {
           const isRadiant = match.player_slot < 128;
           const didWin = (isRadiant && match.radiant_win) || (!isRadiant && !match.radiant_win);
+          if (didWin) winCount++;
+
+          const heroData = heroMap[match.hero_id] || { name: "unknown", localized_name: "Unknown Hero" };
+          const heroImageUrl = `${HERO_IMG_BASE}${heroData.name}.png`;
 
           const durationMinutes = Math.floor(match.duration / 60);
           const durationSeconds = match.duration % 60;
-          const heroName = heroMap[match.hero_id] || `Hero ID ${match.hero_id}`;
+          const formattedDuration = `${durationMinutes}m ${durationSeconds}s`;
 
-          // Convert Unix timestamp to readable date
           const matchDate = new Date(match.start_time * 1000);
           const formattedDate = matchDate.toLocaleDateString(undefined, {
             year: 'numeric',
@@ -92,27 +153,82 @@
             day: 'numeric'
           });
 
+          const kda = `${match.kills} / ${match.deaths} / ${match.assists}`;
+          const result = didWin ? "Win" : "Loss";
+          const matchLink = `https://www.opendota.com/matches/${match.match_id}`;
+
+          // Store raw data for CSV
+          matchDataRows.push([
+            match.match_id,
+            heroData.localized_name,
+            formattedDuration,
+            kda,
+            result,
+            formattedDate
+          ]);
+
           const row = document.createElement("tr");
           row.className = didWin ? "win" : "loss";
 
           row.innerHTML = `
-            <td>${match.match_id}</td>
-            <td>${heroName}</td>
-            <td>${durationMinutes}m ${durationSeconds}s</td>
-            <td>${match.kills} / ${match.deaths} / ${match.assists}</td>
-            <td>${didWin ? "Win" : "Loss"}</td>
+            <td><a href="${matchLink}" target="_blank">${match.match_id}</a></td>
+            <td class="hero-cell"><img src="${heroImageUrl}" class="hero-img" alt="${heroData.localized_name}">${heroData.localized_name}</td>
+            <td>${formattedDuration}</td>
+            <td>${kda}</td>
+            <td>${result}</td>
             <td>${formattedDate}</td>
           `;
 
           tableBody.appendChild(row);
         });
 
+        const winPercentage = ((winCount / matches.length) * 100).toFixed(1);
+        winSummary.textContent = `Win Rate: ${winCount} / ${matches.length} matches (${winPercentage}%)`;
       } catch (error) {
         console.error("Error fetching data:", error);
+        winSummary.textContent = "Error loading win percentage.";
         const row = document.createElement("tr");
         row.innerHTML = `<td colspan="6">Error loading match data.</td>`;
         tableBody.appendChild(row);
       }
+    }
+
+    // Sorting function
+    let sortDirection = true;
+    function sortTable(colIndex) {
+      const rows = Array.from(tableBody.rows);
+      const isNumeric = !isNaN(rows[0].cells[colIndex].innerText.replace(/\D/g, ''));
+      rows.sort((a, b) => {
+        const aText = a.cells[colIndex].innerText.trim();
+        const bText = b.cells[colIndex].innerText.trim();
+        if (isNumeric) {
+          return sortDirection ? aText - bText : bText - aText;
+        } else {
+          return sortDirection
+            ? aText.localeCompare(bText)
+            : bText.localeCompare(aText);
+        }
+      });
+      sortDirection = !sortDirection;
+      tableBody.innerHTML = "";
+      rows.forEach(row => tableBody.appendChild(row));
+    }
+
+    // CSV export
+    function downloadCSV() {
+      const headers = ["Match ID", "Hero", "Duration", "K/D/A", "Result", "Date"];
+      const csvContent = [
+        headers.join(","),
+        ...matchDataRows.map(row => row.map(value => `"${value}"`).join(","))
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "colojoe_matches.csv";
+      a.click();
+      URL.revokeObjectURL(url);
     }
 
     fetchMatchData();
