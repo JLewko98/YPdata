@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>OpenDota Match Info</title>
+  <style>
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f4f4f4;
+    }
+  </style>
+</head>
+<body>
+  <h1>OpenDota Match Info</h1>
+  <table id="matchTable">
+    <thead>
+      <tr>
+        <th>Player Slot</th>
+        <th>Hero ID</th>
+        <th>Kills</th>
+        <th>Deaths</th>
+        <th>Assists</th>
+        <th>Gold</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Data will be inserted here -->
+    </tbody>
+  </table>
+
+  <script>
+    const apiUrl = "https://api.opendota.com/api/matches/271145478?api_key=8d34e6e0-182c-4946-a206-08a59c6f1088";
+
+    fetch(apiUrl)
+      .then(response => response.json())
+      .then(data => {
+        const tableBody = document.querySelector("#matchTable tbody");
+
+        data.players.forEach(player => {
+          const row = document.createElement("tr");
+
+          row.innerHTML = `
+            <td>${player.player_slot}</td>
+            <td>${player.hero_id}</td>
+            <td>${player.kills}</td>
+            <td>${player.deaths}</td>
+            <td>${player.assists}</td>
+            <td>${player.total_gold}</td>
+          `;
+
+          tableBody.appendChild(row);
+        });
+      })
+      .catch(error => {
+        console.error("Error fetching match data:", error);
+      });
+  </script>
+</body>
+</html>
