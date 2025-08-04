@@ -2,8 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ColoJoe Match Info</title>
+  <title>ColoJoe's Last 50 Matches</title>
   <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -11,8 +16,8 @@
     }
 
     th, td {
+      padding: 10px;
       border: 1px solid #ccc;
-      padding: 8px;
       text-align: left;
     }
 
@@ -20,65 +25,88 @@
       background-color: #f4f4f4;
     }
 
-    .highlight {
-      background-color: #dff0d8; /* light green */
-      font-weight: bold;
+    .win {
+      background-color: #d4edda; /* light green */
+    }
+
+    .loss {
+      background-color: #f8d7da; /* light red */
     }
   </style>
 </head>
 <body>
-  <h1>Match Stats for ColoJoe</h1>
+  <h1>ColoJoe's Last 50 Dota 2 Matches</h1>
   <table id="matchTable">
     <thead>
       <tr>
-        <th>Player Name</th>
-        <th>Player Slot</th>
-        <th>Hero ID</th>
-        <th>Kills</th>
-        <th>Deaths</th>
-        <th>Assists</th>
-        <th>Gold</th>
+        <th>Match ID</th>
+        <th>Hero</th>
+        <th>Duration</th>
+        <th>K / D / A</th>
+        <th>Result</th>
       </tr>
     </thead>
     <tbody>
-      <!-- ColoJoe's data will appear here -->
+      <!-- Match data will go here -->
     </tbody>
   </table>
 
   <script>
-    const apiUrl = "https://api.opendota.com/api/matches/271145478?api_key=8d34e6e0-182c-4946-a206-08a59c6f1088";
+    const API_KEY = "8d34e6e0-182c-4946-a206-08a59c6f1088";
+    const ACCOUNT_ID = 86745912; // ColoJoe's Steam32 ID
+    const MATCHES_URL = `https://api.opendota.com/api/players/${ACCOUNT_ID}/matches?limit=50&api_key=${API_KEY}`;
+    const HEROES_URL = `https://api.opendota.com/api/heroes`;
 
-    fetch(apiUrl)
-      .then(response => response.json())
-      .then(data => {
-        const tableBody = document.querySelector("#matchTable tbody");
+    const tableBody = document.querySelector("#matchTable tbody");
 
-        const coloJoe = data.players.find(player => player.personaname === "ColoJoe");
+    async function fetchMatchData() {
+      try {
+        const [matchesResponse, heroesResponse] = await Promise.all([
+          fetch(MATCHES_URL),
+          fetch(HEROES_URL)
+        ]);
 
-        if (coloJoe) {
+        const matches = await matchesResponse.json();
+        const heroes = await heroesResponse.json();
+
+        // Create a lookup map: hero_id → hero.localized_name
+        const heroMap = {};
+        heroes.forEach(hero => {
+          heroMap[hero.id] = hero.localized_name;
+        });
+
+        matches.forEach(match => {
+          const isRadiant = match.player_slot < 128;
+          const didWin = (isRadiant && match.radiant_win) || (!isRadiant && !match.radiant_win);
+
+          const durationMinutes = Math.floor(match.duration / 60);
+          const durationSeconds = match.duration % 60;
+
+          const heroName = heroMap[match.hero_id] || `Hero ID ${match.hero_id}`;
+
           const row = document.createElement("tr");
-          row.classList.add("highlight");
+          row.className = didWin ? "win" : "loss";
 
           row.innerHTML = `
-            <td>${coloJoe.personaname}</td>
-            <td>${coloJoe.player_slot}</td>
-            <td>${coloJoe.hero_id}</td>
-            <td>${coloJoe.kills}</td>
-            <td>${coloJoe.deaths}</td>
-            <td>${coloJoe.assists}</td>
-            <td>${coloJoe.total_gold}</td>
+            <td>${match.match_id}</td>
+            <td>${heroName}</td>
+            <td>${durationMinutes}m ${durationSeconds}s</td>
+            <td>${match.kills} / ${match.deaths} / ${match.assists}</td>
+            <td>${didWin ? "Win" : "Loss"}</td>
           `;
 
           tableBody.appendChild(row);
-        } else {
-          const row = document.createElement("tr");
-          row.innerHTML = `<td colspan="7">ColoJoe not found in this match.</td>`;
-          tableBody.appendChild(row);
-        }
-      })
-      .catch(error => {
-        console.error("Error fetching match data:", error);
-      });
+        });
+
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        const row = document.createElement("tr");
+        row.innerHTML = `<td colspan="5">Error loading match data.</td>`;
+        tableBody.appendChild(row);
+      }
+    }
+
+    fetchMatchData();
   </script>
 </body>
 </html>
