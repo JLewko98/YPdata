@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>OpenDota Match Info</title>
+  <title>ColoJoe Match Info</title>
   <style>
     table {
       width: 100%;
@@ -19,13 +19,19 @@
     th {
       background-color: #f4f4f4;
     }
+
+    .highlight {
+      background-color: #dff0d8; /* light green */
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
-  <h1>OpenDota Match Info</h1>
+  <h1>Match Stats for ColoJoe</h1>
   <table id="matchTable">
     <thead>
       <tr>
+        <th>Player Name</th>
         <th>Player Slot</th>
         <th>Hero ID</th>
         <th>Kills</th>
@@ -35,33 +41,40 @@
       </tr>
     </thead>
     <tbody>
-      <!-- Data will be inserted here -->
-        <!-- "https://api.opendota.com/api/matches/271145478?api_key=8d34e6e0-182c-4946-a206-08a59c6f1088"; -->
+      <!-- ColoJoe's data will appear here -->
     </tbody>
   </table>
 
   <script>
-    const apiUrl = "https://api.opendota.com/api/players/67603167?api_key=8d34e6e0-182c-4946-a206-08a59c6f1088";
-    
+    const apiUrl = "https://api.opendota.com/api/matches/271145478?api_key=8d34e6e0-182c-4946-a206-08a59c6f1088";
+
     fetch(apiUrl)
       .then(response => response.json())
       .then(data => {
         const tableBody = document.querySelector("#matchTable tbody");
 
-        data.players.forEach(player => {
+        const coloJoe = data.players.find(player => player.personaname === "ColoJoe");
+
+        if (coloJoe) {
           const row = document.createElement("tr");
+          row.classList.add("highlight");
 
           row.innerHTML = `
-            <td>${player.player_slot}</td>
-            <td>${player.hero_id}</td>
-            <td>${player.kills}</td>
-            <td>${player.deaths}</td>
-            <td>${player.assists}</td>
-            <td>${player.total_gold}</td>
+            <td>${coloJoe.personaname}</td>
+            <td>${coloJoe.player_slot}</td>
+            <td>${coloJoe.hero_id}</td>
+            <td>${coloJoe.kills}</td>
+            <td>${coloJoe.deaths}</td>
+            <td>${coloJoe.assists}</td>
+            <td>${coloJoe.total_gold}</td>
           `;
 
           tableBody.appendChild(row);
-        });
+        } else {
+          const row = document.createElement("tr");
+          row.innerHTML = `<td colspan="7">ColoJoe not found in this match.</td>`;
+          tableBody.appendChild(row);
+        }
       })
       .catch(error => {
         console.error("Error fetching match data:", error);
