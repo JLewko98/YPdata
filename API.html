@@ -44,6 +44,7 @@
         <th>Duration</th>
         <th>K / D / A</th>
         <th>Result</th>
+        <th>Date</th>
       </tr>
     </thead>
     <tbody>
@@ -81,8 +82,15 @@
 
           const durationMinutes = Math.floor(match.duration / 60);
           const durationSeconds = match.duration % 60;
-
           const heroName = heroMap[match.hero_id] || `Hero ID ${match.hero_id}`;
+
+          // Convert Unix timestamp to readable date
+          const matchDate = new Date(match.start_time * 1000);
+          const formattedDate = matchDate.toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          });
 
           const row = document.createElement("tr");
           row.className = didWin ? "win" : "loss";
@@ -93,6 +101,7 @@
             <td>${durationMinutes}m ${durationSeconds}s</td>
             <td>${match.kills} / ${match.deaths} / ${match.assists}</td>
             <td>${didWin ? "Win" : "Loss"}</td>
+            <td>${formattedDate}</td>
           `;
 
           tableBody.appendChild(row);
@@ -101,7 +110,7 @@
       } catch (error) {
         console.error("Error fetching data:", error);
         const row = document.createElement("tr");
-        row.innerHTML = `<td colspan="5">Error loading match data.</td>`;
+        row.innerHTML = `<td colspan="6">Error loading match data.</td>`;
         tableBody.appendChild(row);
       }
     }
