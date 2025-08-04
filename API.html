@@ -36,13 +36,13 @@
     </thead>
     <tbody>
       <!-- Data will be inserted here -->
+        <!-- "https://api.opendota.com/api/matches/271145478?api_key=8d34e6e0-182c-4946-a206-08a59c6f1088"; -->
     </tbody>
   </table>
 
   <script>
-    const apiUrl = https://api.opendota.com/api/players/67603167?api_key=8d34e6e0-182c-4946-a206-08a59c6f1088";
-      <!-- "https://api.opendota.com/api/matches/271145478?api_key=8d34e6e0-182c-4946-a206-08a59c6f1088"; -->
-
+    const apiUrl = "https://api.opendota.com/api/players/67603167?api_key=8d34e6e0-182c-4946-a206-08a59c6f1088";
+    
     fetch(apiUrl)
       .then(response => response.json())
       .then(data => {
