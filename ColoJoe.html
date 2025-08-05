@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>ColoJoe's Matches Today</title>
+  <title>ColoJoe's Matches</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -113,8 +113,8 @@
   </nav>
 
   <main>
-    <h1>ColoJoe's Matches Today</h1>
-    <div id="winSummary" class="summary">Loading win percentage...</div>
+    <h1>ColoJoe's Matches</h1>
+    <div id="winSummary" class="summary">Loading match data...</div>
     <button onclick="downloadCSV()">Export to CSV</button>
 
     <table id="matchTable">
@@ -153,18 +153,7 @@
         let matches = await matchesResponse.json();
         const heroes = await heroesResponse.json();
 
-        // Today's date window
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayStartTimestamp = Math.floor(today.getTime() / 1000);
-        const tomorrowStartTimestamp = todayStartTimestamp + 86400;
-
-        // Filter matches that happened today only
-        matches = matches.filter(match =>
-          match.start_time >= todayStartTimestamp &&
-          match.start_time < tomorrowStartTimestamp
-        ).slice(0, 50); // max 50 from today
-
+        // Map heroes by ID
         const heroMap = {};
         heroes.forEach(hero => {
           heroMap[hero.id] = {
@@ -173,11 +162,31 @@
           };
         });
 
+        // Get today's date range
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayStart = Math.floor(today.getTime() / 1000);
+        const todayEnd = todayStart + 86400;
+
+        // Filter matches from today
+        const matchesToday = matches.filter(match =>
+          match.start_time >= todayStart && match.start_time < todayEnd
+        );
+
+        // Use today’s matches if found, otherwise use the last 50
+        const filteredMatches = matchesToday.length > 0
+          ? matchesToday.slice(0, 50)
+          : matches.slice(0, 50);
+
+        // Reverse for chronological order (oldest first)
+        filteredMatches.reverse();
+
+        // Prepare display
         let winCount = 0;
         matchDataRows = [];
         tableBody.innerHTML = "";
 
-        matches.forEach(match => {
+        filteredMatches.forEach(match => {
           const isRadiant = match.player_slot < 128;
           const didWin = (isRadiant && match.radiant_win) || (!isRadiant && !match.radiant_win);
           if (didWin) winCount++;
@@ -217,15 +226,15 @@
           tableBody.appendChild(row);
         });
 
-        const winPct = ((winCount / matches.length) * 100).toFixed(1);
-        winSummary.textContent = `Win Rate: ${winCount} / ${matches.length} matches (${winPct}%)`;
+        const winPct = ((winCount / filteredMatches.length) * 100).toFixed(1);
+        const matchContext = matchesToday.length > 0
+          ? `matches played today (${matchesToday.length})`
+          : `most recent matches (${filteredMatches.length})`;
 
-        if (matches.length === 0) {
-          winSummary.textContent = "No matches played today.";
-        }
+        winSummary.textContent = `Win Rate: ${winCount} / ${filteredMatches.length} ${matchContext} (${winPct}%)`;
 
       } catch (err) {
-        console.error("Failed to fetch data:", err);
+        console.error("Error fetching match data:", err);
         winSummary.textContent = "Failed to load match data.";
         tableBody.innerHTML = `<tr><td colspan="6">Error loading data.</td></tr>`;
       }
@@ -264,7 +273,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "colojoe_matches_today.csv";
+      a.download = "colojoe_matches.csv";
       a.click();
       URL.revokeObjectURL(url);
     }
