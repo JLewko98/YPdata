@@ -123,7 +123,6 @@
         let matches = await matchesResponse.json();
         const heroes = await heroesResponse.json();
 
-        // Reverse matches so oldest comes first
         matches = matches.reverse();
 
         const heroMap = {};
@@ -174,13 +173,16 @@
           row.className = didWin ? "win" : "loss";
 
           row.innerHTML = `
-            <td><a href="${matchLink}" target="_blank">${match.match_id}</a></td>
+            <td>${match.match_id}</td>
             <td class="hero-cell"><img src="${heroImageUrl}" class="hero-img" alt="${heroData.localized_name}">${heroData.localized_name}</td>
-            <td>${formattedDuration}</td>
-            <td>${kda}</td>
+            <td data-seconds="${match.duration}">${formattedDuration}</td>
+            <td data-kills="${match.kills}">${kda}</td>
             <td>${result}</td>
-            <td>${formattedDate}</td>
+            <td data-timestamp="${match.start_time}">${formattedDate}</td>
           `;
+
+          // Replace match ID cell with link
+          row.cells[0].innerHTML = `<a href="${matchLink}" target="_blank">${match.match_id}</a>`;
 
           tableBody.appendChild(row);
         });
@@ -196,26 +198,52 @@
       }
     }
 
+    // Sorting
     let sortDirection = true;
     function sortTable(colIndex) {
       const rows = Array.from(tableBody.rows);
-      const isNumeric = !isNaN(rows[0].cells[colIndex].innerText.replace(/\D/g, ''));
+
       rows.sort((a, b) => {
-        const aText = a.cells[colIndex].innerText.trim();
-        const bText = b.cells[colIndex].innerText.trim();
-        if (isNumeric) {
-          return sortDirection ? aText - bText : bText - aText;
-        } else {
-          return sortDirection
-            ? aText.localeCompare(bText)
-            : bText.localeCompare(aText);
+        const aCell = a.cells[colIndex];
+        const bCell = b.cells[colIndex];
+
+        switch (colIndex) {
+          case 0: // Match ID
+            return sortDirection
+              ? aCell.innerText - bCell.innerText
+              : bCell.innerText - aCell.innerText;
+          case 1: // Hero
+            return sortDirection
+              ? aCell.innerText.localeCompare(bCell.innerText)
+              : bCell.innerText.localeCompare(aCell.innerText);
+          case 2: // Duration
+            return sortDirection
+              ? aCell.dataset.seconds - bCell.dataset.seconds
+              : bCell.dataset.seconds - aCell.dataset.seconds;
+          case 3: // Kills (from K/D/A)
+            return sortDirection
+              ? aCell.dataset.kills - bCell.dataset.kills
+              : bCell.dataset.kills - aCell.dataset.kills;
+          case 4: // Result
+            return sortDirection
+              ? aCell.innerText.localeCompare(bCell.innerText)
+              : bCell.innerText.localeCompare(aCell.innerText);
+          case 5: // Date
+            return sortDirection
+              ? aCell.dataset.timestamp - bCell.dataset.timestamp
+              : bCell.dataset.timestamp - aCell.dataset.timestamp;
+          default:
+            return 0;
         }
       });
+
       sortDirection = !sortDirection;
+
       tableBody.innerHTML = "";
       rows.forEach(row => tableBody.appendChild(row));
     }
 
+    // CSV Export
     function downloadCSV() {
       const headers = ["Match ID", "Hero", "Duration", "K/D/A", "Result", "Date"];
       const csvContent = [
