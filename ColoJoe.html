@@ -104,17 +104,18 @@
 </head>
 <body>
   <nav>
-    <a href="index.html">Home</a>
+    <a href="#">Home</a>
     <a href="ColoJoe.html">ColoJoe</a>
-    <a href="DotaNinja.html">dotaninja</a>
-    <a href="Sanidin.html">Sanidin</a>
-    <a href="Sweep.html">Sweep</a>
-    <a href="Kanth.html">Kanth Donos</a>
+    <a href="DotaNinjas.html">DotaNinjas</a>
+    <a href="#">Sanidin</a>
+    <a href="#">Sweep</a>
+    <a href="#">Kanth Donos</a>
   </nav>
 
   <main>
     <h1>ColoJoe's Matches</h1>
     <div id="winSummary" class="summary">Loading match data...</div>
+    <button onclick="fetchMatchData()">Refresh Data</button>
     <button onclick="downloadCSV()">Export to CSV</button>
 
     <table id="matchTable">
@@ -134,8 +135,8 @@
 
   <script>
     const API_KEY = "8d34e6e0-182c-4946-a206-08a59c6f1088";
-    const ACCOUNT_ID = 86745912; // ColoJoe
-    const MATCHES_URL = `https://api.opendota.com/api/players/${ACCOUNT_ID}/matches?limit=1000&api_key=${API_KEY}`;
+    const ACCOUNT_ID = 116295115; // ColoJoe
+    const MATCHES_URL = `https://api.opendota.com/api/players/${ACCOUNT_ID}/matches?limit=100&api_key=${API_KEY}`;
     const HEROES_URL = `https://api.opendota.com/api/heroes`;
     const HERO_IMG_BASE = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/";
 
@@ -150,10 +151,9 @@
           fetch(HEROES_URL)
         ]);
 
-        let matches = await matchesResponse.json();
+        const matches = await matchesResponse.json();
         const heroes = await heroesResponse.json();
 
-        // Map heroes by ID
         const heroMap = {};
         heroes.forEach(hero => {
           heroMap[hero.id] = {
@@ -162,26 +162,8 @@
           };
         });
 
-        // Get today's date range
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayStart = Math.floor(today.getTime() / 1000);
-        const todayEnd = todayStart + 86400;
+        const filteredMatches = matches.slice(0, 50).reverse(); // Most recent 50 matches, ordered oldest to newest
 
-        // Filter matches from today
-        const matchesToday = matches.filter(match =>
-          match.start_time >= todayStart && match.start_time < todayEnd
-        );
-
-        // Use today’s matches if found, otherwise use the last 50
-        const filteredMatches = matchesToday.length > 0
-          ? matchesToday.slice(0, 50)
-          : matches.slice(0, 50);
-
-        // Reverse for chronological order (oldest first)
-        filteredMatches.reverse();
-
-        // Prepare display
         let winCount = 0;
         matchDataRows = [];
         tableBody.innerHTML = "";
@@ -227,14 +209,10 @@
         });
 
         const winPct = ((winCount / filteredMatches.length) * 100).toFixed(1);
-        const matchContext = matchesToday.length > 0
-          ? `matches played today (${matchesToday.length})`
-          : `most recent matches (${filteredMatches.length})`;
-
-        winSummary.textContent = `Win Rate: ${winCount} / ${filteredMatches.length} ${matchContext} (${winPct}%)`;
+        winSummary.textContent = `Win Rate: ${winCount} / ${filteredMatches.length} matches (${winPct}%)`;
 
       } catch (err) {
-        console.error("Error fetching match data:", err);
+        console.error("Failed to fetch match data:", err);
         winSummary.textContent = "Failed to load match data.";
         tableBody.innerHTML = `<tr><td colspan="6">Error loading data.</td></tr>`;
       }
