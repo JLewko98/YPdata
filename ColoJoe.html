@@ -135,8 +135,8 @@
 
   <script>
     const API_KEY = "8d34e6e0-182c-4946-a206-08a59c6f1088";
-    const ACCOUNT_ID = 86745912; // Corrected ColoJoe Account ID
-    const MATCHES_URL = `https://api.opendota.com/api/players/${ACCOUNT_ID}/matches?limit=100&api_key=${API_KEY}`;
+    const ACCOUNT_ID = 86745912; // Updated ColoJoe Account ID
+    const MATCHES_URL = `https://api.opendota.com/api/players/${ACCOUNT_ID}/matches?limit=10000&api_key=${API_KEY}`;
     const HEROES_URL = `https://api.opendota.com/api/heroes`;
     const HERO_IMG_BASE = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/";
 
@@ -162,7 +162,7 @@
           };
         });
 
-        const filteredMatches = matches.slice(0, 50).reverse(); // Most recent 50 matches, ordered oldest to newest
+        const filteredMatches = matches.slice(0, 50).reverse();
 
         let winCount = 0;
         matchDataRows = [];
