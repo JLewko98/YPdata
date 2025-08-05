@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>ColoJoe's Last 50 Matches</title>
+  <title>ColoJoe's Matches Today</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -113,7 +113,7 @@
   </nav>
 
   <main>
-    <h1>ColoJoe's Last 50 Matches</h1>
+    <h1>ColoJoe's Matches Today</h1>
     <div id="winSummary" class="summary">Loading win percentage...</div>
     <button onclick="downloadCSV()">Export to CSV</button>
 
@@ -134,7 +134,7 @@
 
   <script>
     const API_KEY = "8d34e6e0-182c-4946-a206-08a59c6f1088";
-    const ACCOUNT_ID = 86745912;
+    const ACCOUNT_ID = 86745912; // ColoJoe
     const MATCHES_URL = `https://api.opendota.com/api/players/${ACCOUNT_ID}/matches?limit=1000&api_key=${API_KEY}`;
     const HEROES_URL = `https://api.opendota.com/api/heroes`;
     const HERO_IMG_BASE = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/";
@@ -153,13 +153,17 @@
         let matches = await matchesResponse.json();
         const heroes = await heroesResponse.json();
 
-        // Only matches up to today
+        // Today's date window
         const today = new Date();
-        const todayTimestamp = Math.floor(today.getTime() / 1000);
-        matches = matches.filter(match => match.start_time <= todayTimestamp);
+        today.setHours(0, 0, 0, 0);
+        const todayStartTimestamp = Math.floor(today.getTime() / 1000);
+        const tomorrowStartTimestamp = todayStartTimestamp + 86400;
 
-        // Sort oldest to newest and take latest 50 up to today
-        matches = matches.reverse().slice(-50);
+        // Filter matches that happened today only
+        matches = matches.filter(match =>
+          match.start_time >= todayStartTimestamp &&
+          match.start_time < tomorrowStartTimestamp
+        ).slice(0, 50); // max 50 from today
 
         const heroMap = {};
         heroes.forEach(hero => {
@@ -216,6 +220,10 @@
         const winPct = ((winCount / matches.length) * 100).toFixed(1);
         winSummary.textContent = `Win Rate: ${winCount} / ${matches.length} matches (${winPct}%)`;
 
+        if (matches.length === 0) {
+          winSummary.textContent = "No matches played today.";
+        }
+
       } catch (err) {
         console.error("Failed to fetch data:", err);
         winSummary.textContent = "Failed to load match data.";
@@ -256,7 +264,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "colojoe_matches.csv";
+      a.download = "colojoe_matches_today.csv";
       a.click();
       URL.revokeObjectURL(url);
     }
