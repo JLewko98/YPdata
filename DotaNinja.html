@@ -2,14 +2,39 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>DotaNinJas Last 50 Matches</title>
+  <title>DotaNinjas' Matches</title>
   <style>
     body {
       font-family: Arial, sans-serif;
+      background-color: #121212;
+      color: #f5f5f5;
+      margin: 0;
+      padding: 0;
+    }
+
+    nav {
+      background-color: #1f1f1f;
+      padding: 10px 20px;
+      display: flex;
+      gap: 20px;
+      border-bottom: 1px solid #333;
+    }
+
+    nav a {
+      color: #f5f5f5;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    main {
       padding: 20px;
     }
 
-    h1, h2 {
+    h1 {
       margin-bottom: 10px;
     }
 
@@ -40,27 +65,25 @@
 
     th, td {
       padding: 10px;
-      border: 1px solid #ccc;
+      border: 1px solid #333;
       text-align: left;
-      vertical-align: middle;
     }
 
     th {
-      background-color: #f4f4f4;
+      background-color: #2a2a2a;
       cursor: pointer;
     }
 
     .win {
-      background-color: #d4edda;
+      background-color: #225522;
     }
 
     .loss {
-      background-color: #f8d7da;
+      background-color: #552222;
     }
 
     .hero-img {
       height: 32px;
-      vertical-align: middle;
       margin-right: 8px;
     }
 
@@ -70,7 +93,7 @@
     }
 
     a {
-      color: #0077cc;
+      color: #66b2ff;
       text-decoration: none;
     }
 
@@ -80,37 +103,44 @@
   </style>
 </head>
 <body>
-  <h1>DotaNinJas Last 50 Dota 2 Matches</h1>
-  <div id="winSummary" class="summary">Loading win percentage...</div>
-  <button onclick="downloadCSV()">Export to CSV</button>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="ColoJoe.html">ColoJoe</a>
+    <a href="dotaninja.html">dotaninja</a>
+    <a href="Sanidin.html">Sanidin</a>
+    <a href="Sweep.html">Sweep</a>
+    <a href="Kanth.html">Kanth Donos</a>
+  </nav>
 
-  <table id="matchTable">
-    <thead>
-      <tr>
-        <th onclick="sortTable(0)">Match</th>
-        <th onclick="sortTable(1)">Hero</th>
-        <th onclick="sortTable(2)">Duration</th>
-        <th onclick="sortTable(3)">K / D / A</th>
-        <th onclick="sortTable(4)">Result</th>
-        <th onclick="sortTable(5)">Date</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Match data goes here -->
-    </tbody>
-  </table>
+  <main>
+    <h1>DotaNinjas' Matches</h1>
+    <div id="winSummary" class="summary">Loading match data...</div>
+    <button onclick="downloadCSV()">Export to CSV</button>
+
+    <table id="matchTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable(0)">Match</th>
+          <th onclick="sortTable(1)">Hero</th>
+          <th onclick="sortTable(2)">Duration</th>
+          <th onclick="sortTable(3)">K / D / A</th>
+          <th onclick="sortTable(4)">Result</th>
+          <th onclick="sortTable(5)">Date</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </main>
 
   <script>
     const API_KEY = "8d34e6e0-182c-4946-a206-08a59c6f1088";
-    const ACCOUNT_ID = 366924678; // DotaNinJas Steam32 ID
-    const MATCHES_URL = `https://api.opendota.com/api/players/${ACCOUNT_ID}/matches?limit=50&api_key=${API_KEY}`;
+    const ACCOUNT_ID = 123456789; // Replace with actual DotaNinjas Steam32 ID
+    const MATCHES_URL = `https://api.opendota.com/api/players/${ACCOUNT_ID}/matches?limit=1000&api_key=${API_KEY}`;
     const HEROES_URL = `https://api.opendota.com/api/heroes`;
     const HERO_IMG_BASE = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/";
 
-    const table = document.getElementById("matchTable");
-    const tableBody = table.querySelector("tbody");
+    const tableBody = document.querySelector("#matchTable tbody");
     const winSummary = document.getElementById("winSummary");
-
     let matchDataRows = [];
 
     async function fetchMatchData() {
@@ -123,8 +153,6 @@
         let matches = await matchesResponse.json();
         const heroes = await heroesResponse.json();
 
-        matches = matches.reverse();
-
         const heroMap = {};
         heroes.forEach(hero => {
           heroMap[hero.id] = {
@@ -133,28 +161,36 @@
           };
         });
 
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayStart = Math.floor(today.getTime() / 1000);
+        const todayEnd = todayStart + 86400;
+
+        const matchesToday = matches.filter(match =>
+          match.start_time >= todayStart && match.start_time < todayEnd
+        );
+
+        const filteredMatches = matchesToday.length > 0
+          ? matchesToday.slice(0, 50)
+          : matches.slice(0, 50);
+
+        filteredMatches.reverse();
+
         let winCount = 0;
         matchDataRows = [];
         tableBody.innerHTML = "";
 
-        matches.forEach(match => {
+        filteredMatches.forEach(match => {
           const isRadiant = match.player_slot < 128;
           const didWin = (isRadiant && match.radiant_win) || (!isRadiant && !match.radiant_win);
           if (didWin) winCount++;
 
-          const heroData = heroMap[match.hero_id] || { name: "unknown", localized_name: "Unknown Hero" };
-          const heroImageUrl = `${HERO_IMG_BASE}${heroData.name}.png`;
+          const hero = heroMap[match.hero_id] || { name: "unknown", localized_name: "Unknown Hero" };
+          const heroImg = `${HERO_IMG_BASE}${hero.name}.png`;
 
-          const durationMinutes = Math.floor(match.duration / 60);
-          const durationSeconds = match.duration % 60;
-          const formattedDuration = `${durationMinutes}m ${durationSeconds}s`;
-
-          const matchDate = new Date(match.start_time * 1000);
-          const formattedDate = matchDate.toLocaleDateString(undefined, {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-          });
+          const duration = `${Math.floor(match.duration / 60)}m ${match.duration % 60}s`;
+          const date = new Date(match.start_time * 1000);
+          const formattedDate = date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 
           const kda = `${match.kills} / ${match.deaths} / ${match.assists}`;
           const result = didWin ? "Win" : "Loss";
@@ -162,8 +198,8 @@
 
           matchDataRows.push([
             match.match_id,
-            heroData.localized_name,
-            formattedDuration,
+            hero.localized_name,
+            duration,
             kda,
             result,
             formattedDate
@@ -173,77 +209,52 @@
           row.className = didWin ? "win" : "loss";
 
           row.innerHTML = `
-            <td>${match.match_id}</td>
-            <td class="hero-cell"><img src="${heroImageUrl}" class="hero-img" alt="${heroData.localized_name}">${heroData.localized_name}</td>
-            <td data-seconds="${match.duration}">${formattedDuration}</td>
+            <td><a href="${matchLink}" target="_blank">${match.match_id}</a></td>
+            <td class="hero-cell"><img src="${heroImg}" class="hero-img" alt="${hero.localized_name}">${hero.localized_name}</td>
+            <td data-seconds="${match.duration}">${duration}</td>
             <td data-kills="${match.kills}">${kda}</td>
             <td>${result}</td>
             <td data-timestamp="${match.start_time}">${formattedDate}</td>
           `;
 
-          // Replace match ID cell with link
-          row.cells[0].innerHTML = `<a href="${matchLink}" target="_blank">${match.match_id}</a>`;
-
           tableBody.appendChild(row);
         });
 
-        const winPercentage = ((winCount / matches.length) * 100).toFixed(1);
-        winSummary.textContent = `Win Rate: ${winCount} / ${matches.length} matches (${winPercentage}%)`;
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        winSummary.textContent = "Error loading win percentage.";
-        const row = document.createElement("tr");
-        row.innerHTML = `<td colspan="6">Error loading match data.</td>`;
-        tableBody.appendChild(row);
+        const winPct = ((winCount / filteredMatches.length) * 100).toFixed(1);
+        const context = matchesToday.length > 0
+          ? `matches played today (${matchesToday.length})`
+          : `most recent matches (${filteredMatches.length})`;
+        winSummary.textContent = `Win Rate: ${winCount} / ${filteredMatches.length} ${context} (${winPct}%)`;
+
+      } catch (err) {
+        console.error("Failed to fetch match data:", err);
+        winSummary.textContent = "Failed to load match data.";
+        tableBody.innerHTML = `<tr><td colspan="6">Error loading data.</td></tr>`;
       }
     }
 
-    // Sorting
     let sortDirection = true;
     function sortTable(colIndex) {
       const rows = Array.from(tableBody.rows);
-
       rows.sort((a, b) => {
         const aCell = a.cells[colIndex];
         const bCell = b.cells[colIndex];
 
         switch (colIndex) {
-          case 0: // Match ID
-            return sortDirection
-              ? aCell.innerText - bCell.innerText
-              : bCell.innerText - aCell.innerText;
-          case 1: // Hero
-            return sortDirection
-              ? aCell.innerText.localeCompare(bCell.innerText)
-              : bCell.innerText.localeCompare(aCell.innerText);
-          case 2: // Duration
-            return sortDirection
-              ? aCell.dataset.seconds - bCell.dataset.seconds
-              : bCell.dataset.seconds - aCell.dataset.seconds;
-          case 3: // Kills (from K/D/A)
-            return sortDirection
-              ? aCell.dataset.kills - bCell.dataset.kills
-              : bCell.dataset.kills - aCell.dataset.kills;
-          case 4: // Result
-            return sortDirection
-              ? aCell.innerText.localeCompare(bCell.innerText)
-              : bCell.innerText.localeCompare(aCell.innerText);
-          case 5: // Date
-            return sortDirection
-              ? aCell.dataset.timestamp - bCell.dataset.timestamp
-              : bCell.dataset.timestamp - aCell.dataset.timestamp;
-          default:
-            return 0;
+          case 0: return sortDirection ? aCell.innerText - bCell.innerText : bCell.innerText - aCell.innerText;
+          case 1: return sortDirection ? aCell.innerText.localeCompare(bCell.innerText) : bCell.innerText.localeCompare(aCell.innerText);
+          case 2: return sortDirection ? aCell.dataset.seconds - bCell.dataset.seconds : bCell.dataset.seconds - aCell.dataset.seconds;
+          case 3: return sortDirection ? aCell.dataset.kills - bCell.dataset.kills : bCell.dataset.kills - aCell.dataset.kills;
+          case 4: return sortDirection ? aCell.innerText.localeCompare(bCell.innerText) : bCell.innerText.localeCompare(aCell.innerText);
+          case 5: return sortDirection ? aCell.dataset.timestamp - bCell.dataset.timestamp : bCell.dataset.timestamp - aCell.dataset.timestamp;
         }
       });
 
       sortDirection = !sortDirection;
-
       tableBody.innerHTML = "";
       rows.forEach(row => tableBody.appendChild(row));
     }
 
-    // CSV Export
     function downloadCSV() {
       const headers = ["Match ID", "Hero", "Duration", "K/D/A", "Result", "Date"];
       const csvContent = [
